@@ -31,39 +31,40 @@ package main
 //go:generate go run .
 
 import (
-    "log"
-    "github.com/patrickward/go-heroicons"
+	"log"
+	"github.com/patrickward/go-heroicons"
 )
 
 func main() {
-    generator := &heroicons.Generator{
-        // Path to your cloned Heroicons repository
-        HeroiconsPath: "/path/to/heroicons",
-        
-        // Generated icons package will be saved to this directory. 
-        // In this case, if the generator is run from internal/icons/generate,
-        // the icons will be saved to internal/icons/icons and the provider 
-        // will be saved to internal/icons/provider.go
-        OutputPath: "../",
-        
-        // Name of the generated package
-        PackageName: "icons",
-        
-        // List of icons you want to include. Each icon must have a name and type.
-		// Each name must match a file in the Heroicons repository.
-        Icons: []heroicons.IconSet{
-			{Name: "academic-cap", Type: heroicons.IconOutline},
-            {Name: "home", Type: heroicons.IconOutline},
-            {Name: "user", Type: heroicons.IconSolid},
-            {Name: "cog", Type: heroicons.IconMini},
-            {Name: "bell", Type: heroicons.IconMicro},
-        },
-    }
+	generator := &heroicons.Generator{
+		// Path to your cloned Heroicons repository
+		HeroiconsPath: "/path/to/heroicons",
 
-    if err := generator.Generate(); err != nil {
-        log.Fatal(err)
-    }
+		// Generated icons package will be saved to this directory. 
+		// In this case, if the generator is run from internal/icons/generate,
+		// the icons will be saved to internal/icons/icons and the provider 
+		// will be saved to internal/icons/provider.go
+		OutputPath: "../",
+
+		// Name of the generated package
+		PackageName: "icons",
+
+		// List of icons you want to include. Each icon must have a name and type.
+		// Each name must match a file in the Heroicons repository.
+		Icons: []heroicons.IconSet{
+			{Name: "academic-cap", Type: heroicons.IconOutline},
+			{Name: "home", Type: heroicons.IconOutline},
+			{Name: "user", Type: heroicons.IconSolid},
+			{Name: "cog", Type: heroicons.IconMini},
+			{Name: "bell", Type: heroicons.IconMicro},
+		},
+	}
+
+	if err := generator.Generate(); err != nil {
+		log.Fatal(err)
+	}
 }
+
 ```
 
 ### 2. Generate the Icons
@@ -140,30 +141,31 @@ Alternatively, you can return an error if a missing icon is encountered by setti
 You can provide your own "missing icon" SVG by overriding the `MissingIconSVG` for the package:
 
 ```go
-generator := &heroicons.Generator{
-    // Path to your cloned Heroicons repository
-    HeroiconsPath: "/path/to/heroicons",
-    
-    // Generated icons package will be saved to this directory. 
-    // In this case, if the generator is run from internal/icons/generate,
-    // the icons will be saved to internal/icons/icons and the provider 
-    // will be saved to internal/icons/provider.go
-    OutputPath: "../",
-    
-    // Name of the generated package
-    PackageName: "icons",
-    
-    // List of icons you want to include. Each icon must have a name and type.
-    Icons: []heroicons.IconSet{
-        {Name: "home", Type: heroicons.IconOutline},
-    },
-    
-    // Fail if any icons are missing
-    FailOnError: true,
-	
-    // Custom missing icon SVG
-    MissingIconSVG: `<svg xmlns="http://www.w3.org/2000/svg" ... </svg>`,
+   generator := &heroicons.Generator{
+   // Path to your cloned Heroicons repository
+   HeroiconsPath: "/path/to/heroicons",
+
+   // Generated icons package will be saved to this directory. 
+   // In this case, if the generator is run from internal/icons/generate,
+   // the icons will be saved to internal/icons/icons and the provider 
+   // will be saved to internal/icons/provider.go
+   OutputPath: "../",
+
+   // Name of the generated package
+   PackageName: "icons",
+
+   // List of icons you want to include. Each icon must have a name and type.
+   Icons: []heroicons.IconSet{
+   {Name: "home", Type: heroicons.IconOutline},
+   },
+
+   // Fail if any icons are missing
+   FailOnError: true,
+
+   // Custom missing icon SVG
+   MissingIconSVG: `<svg xmlns="http://www.w3.org/2000/svg" ... </svg>`,
 }
+
 ```
 
 ## Important Notes
