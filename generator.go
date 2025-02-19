@@ -9,9 +9,8 @@ import (
 	"text/template"
 )
 
-var MissingIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-</svg>`
+// DefaultMissingIconSVG is the default SVG content for the missing icon
+var DefaultMissingIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fb2c36"><path d="M17.5 2.5L23 12L17.5 21.5H6.5L1 12L6.5 2.5H17.5ZM11 15V17H13V15H11ZM11 7V13H13V7H11Z"></path></svg>`
 
 // IconType represents the different types of Heroicons
 type IconType string
@@ -39,10 +38,18 @@ type Generator struct {
 	PackageName string
 	// Icons is the list of icons to include
 	Icons []IconSet
+	// FailOnError if true, missing icons will cause an error; otherwise, the missing icon will be used
+	FailOnError bool
+	// MissingIconSVG is the SVG content to use for missing icons. This overrides the default.
+	MissingIconSVG string
 }
 
 // Generate creates the icon manifest and copies the required icons
 func (g *Generator) Generate() error {
+	if g.MissingIconSVG == "" {
+		g.MissingIconSVG = DefaultMissingIconSVG
+	}
+
 	// Create output directory
 	iconsPath := filepath.Join(g.OutputPath, "icons")
 	if err := os.MkdirAll(iconsPath, 0755); err != nil {
@@ -51,7 +58,7 @@ func (g *Generator) Generate() error {
 
 	// Write our missing icon SVG
 	missingIconPath := filepath.Join(iconsPath, "missing.svg")
-	if err := os.WriteFile(missingIconPath, []byte(MissingIconSVG), 0644); err != nil {
+	if err := os.WriteFile(missingIconPath, []byte(g.MissingIconSVG), 0644); err != nil {
 		return fmt.Errorf("failed to write missing icon: %w", err)
 	}
 
@@ -65,8 +72,6 @@ func (g *Generator) Generate() error {
 
 		if err := g.copyIcon(srcPath, destPath); err != nil {
 			missingIcons = append(missingIcons, fmt.Sprintf("%s/%s", icon.Type, icon.Name))
-			// Map this icon to the mission icon in the output path
-			iconPaths[fmt.Sprintf("%s/%s", icon.Type, icon.Name)] = "missing.svg"
 			continue
 		}
 
@@ -81,7 +86,7 @@ func (g *Generator) Generate() error {
 
 	// Log which icons are missing
 	if len(missingIcons) > 0 {
-		fmt.Printf("The following icons were not found and have been replaced with a missing icon:\n%s",
+		fmt.Printf("The following icons were not found and could not be copied:\n%s\n",
 			strings.Join(missingIcons, "\n"))
 	}
 
@@ -141,6 +146,9 @@ import (
 //go:embed icons/*.svg
 var iconFS embed.FS
 
+// FailOnError determines whether to use a generic missing icon when an icon is not found
+var FailOnError = {{ if .FailOnError }}true{{ else }}false{{ end }} 
+
 // IconType represents the different types of Heroicons
 type IconType string
 
@@ -176,17 +184,31 @@ func RenderIcon(name string, iconType heroicons.IconType, class string) (templat
 	return template.HTML(svg), nil
 }
 
+func getMissingIcon() string {
+	content, err := iconFS.ReadFile("icons/missing.svg")
+	if err != nil {
+		return ""
+	}
+	return string(content)
+}
+
 func getIcon(name string, iconType heroicons.IconType) (string, error) {
 	key := fmt.Sprintf("%s/%s", iconType, name)
 	filename, ok := iconPaths[key]
 	if !ok {
-		return "", fmt.Errorf("icon not found: %s", key)
+		if FailOnError {
+			return "", fmt.Errorf("icon not found: %s", key)
+		}
+		return getMissingIcon(), nil
 	}
 
 	filename = fmt.Sprintf("icons/%s", filename)
 	content, err := iconFS.ReadFile(filename)
 	if err != nil {
-		return "", fmt.Errorf("failed to read icon %s: %w", filename, err)
+		if FailOnError {
+			return "", fmt.Errorf("failed to read icon %s: %w", filename, err)
+		}
+		return getMissingIcon(), nil
 	}
 
 	return string(content), nil
@@ -210,9 +232,11 @@ func (g *Generator) generateProvider(iconPaths map[string]string) error {
 	data := struct {
 		PackageName string
 		IconPaths   map[string]string
+		FailOnError bool
 	}{
 		PackageName: g.PackageName,
 		IconPaths:   iconPaths,
+		FailOnError: g.FailOnError,
 	}
 
 	return tmpl.Execute(f, data)
