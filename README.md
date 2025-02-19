@@ -82,10 +82,9 @@ go generate ./...
 ```
 
 This will:
-- Create the internal/icons directory if it doesn't exist
 - Copy the requested icons from the Heroicons repository into the internal/icons/icons directory
-- Generate a provider package with the icons embedded at internal/icons/icons.go
-- Include a "missing icon" SVG for any icons that weren't found
+- Generate the internal/icons/provider.go file with the icons embedded
+- Include a "missing icon" SVG for any icons not found during runtime
 
 ### 3. Use the Icons in Your Templates
 
@@ -160,7 +159,7 @@ You can provide your own "missing icon" SVG by overriding the `MissingIconSVG` f
    },
 
    // Fail if any icons are missing
-   FailOnError: true,
+   FailOnError: false,
 
    // Custom missing icon SVG
    MissingIconSVG: `<svg xmlns="http://www.w3.org/2000/svg" ... </svg>`,
@@ -172,7 +171,7 @@ You can provide your own "missing icon" SVG by overriding the `MissingIconSVG` f
 
 - This package does not include the Heroicons SVGs. You need to provide the path to the Heroicons repository during build time.
 - Only the icons you specify will be embedded in your binary.
-- The generator needs to be run whenever you want to add or remove icons.
+- The generator needs to be run whenever you add or remove icons.
 - Icons are embedded as SVGs and can be styled with CSS classes.
 - The package uses `go:embed` to include the icons in your binary - no runtime filesystem access is needed.
 
