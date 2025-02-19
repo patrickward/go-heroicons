@@ -32,7 +32,7 @@ package main
 
 import (
     "log"
-    "github.com/patrickward/heroicons"
+    "github.com/patrickward/go-heroicons"
 )
 
 func main() {
@@ -50,7 +50,9 @@ func main() {
         PackageName: "icons",
         
         // List of icons you want to include. Each icon must have a name and type.
+		// Each name must match a file in the Heroicons repository.
         Icons: []heroicons.IconSet{
+			{Name: "academic-cap", Type: heroicons.IconOutline},
             {Name: "home", Type: heroicons.IconOutline},
             {Name: "user", Type: heroicons.IconSolid},
             {Name: "cog", Type: heroicons.IconMini},
@@ -86,64 +88,87 @@ This will:
 
 ### 3. Use the Icons in Your Templates
 
-Initialize the icons package and use it in your templates:
+In your project, you can now use the generated icons in your HTML template. 
+
+The `RenderIcon` method can be used to render an icon in your template. It takes the icon name, type, and any additional classes you want to apply to the SVG:
 
 ```go
+
 package main
 
 import (
-    "html/template"
-    "yourproject/internal/icons"
+   "html/template"
+   "yourproject/internal/icons"
 )
 
 func main() {
-    // Initialize the icons
-    icons.Initialize()
-
-    // Use in your templates
-    tmpl := template.Must(template.New("example").Funcs(icons.FuncMap()).Parse(`
-        <button>
-            {{icon "home" "outline" "w-6 h-6"}}
-            Home
-        </button>
-    `))
-}
-```
-
-Or, if you are adding to an existing functions map:
-
-```go
-func main() {
-    // Initialize the icons
-    icons.Initialize()
 	
-    // Add to an existing functions map
+    // Add to an existing functions map or create a new one
     funcs := template.FuncMap{
-        "icon": icons.IconFunc,
+        "icon": icons.RenderIcon,
     }
-}
+	
+   // Use in your templates
+   tmpl := template.Must(template.New("example").Funcs(funcs).Parse(`
+           <button>
+               {{icon "home" "outline" "w-6 h-6"}}
+               Home
+           </button>
+       `))
+   }
 ```
 
 ## Icon Types
 
-The package supports all Heroicon types:
-- `IconOutline` - 24px outline icons
-- `IconSolid` - 24px solid icons
-- `IconMini` - 20px solid icons
-- `IconMicro` - 16px solid icons
+The package supports v3 Heroicon types: 
+- `outline` - 24px outline icons
+- `solid` - 24px solid icons
+- `mini` - 20px solid icons
+- `micro` - 16px solid icons
 
 ## Missing Icons
 
-If an icon specified in your generator configuration isn't found in the Heroicons repository, the package will:
-1. Log a warning during generation
-2. Substitute a generic "missing icon" SVG
-3. Continue with the build process
+If an icon specified in your generator configuration isn't found in the Heroicons repository during generation, the package will:
 
-This ensures your application won't break if an icon is renamed or removed in a future Heroicons update.
+1. Log a warning during generation
+2. Continue with the build process
+
+During runtime, if an icon cannot be found, the package will render a "missing icon" SVG in place of the missing icon. The default missing icon is a red hexagon with an exclamation mark.
+
+Alternatively, you can return an error if a missing icon is encountered by setting `FailOnError` to `true` in your generator configuration.
+
+You can provide your own "missing icon" SVG by overriding the `MissingIconSVG` for the package:
+
+```go
+generator := &heroicons.Generator{
+    // Path to your cloned Heroicons repository
+    HeroiconsPath: "/path/to/heroicons",
+    
+    // Generated icons package will be saved to this directory. 
+    // In this case, if the generator is run from internal/icons/generate,
+    // the icons will be saved to internal/icons/icons and the provider 
+    // will be saved to internal/icons/provider.go
+    OutputPath: "../",
+    
+    // Name of the generated package
+    PackageName: "icons",
+    
+    // List of icons you want to include. Each icon must have a name and type.
+    Icons: []heroicons.IconSet{
+        {Name: "home", Type: heroicons.IconOutline},
+    },
+    
+    // Fail if any icons are missing
+    FailOnError: true,
+	
+    // Custom missing icon SVG
+    MissingIconSVG: `<svg xmlns="http://www.w3.org/2000/svg" ... </svg>`,
+}
+```
 
 ## Important Notes
 
-- This package does not include the Heroicons SVGs. You need to have the Heroicons repository available during build time.
+- This package does not include the Heroicons SVGs. You need to provide the path to the Heroicons repository during build time.
 - Only the icons you specify will be embedded in your binary.
 - The generator needs to be run whenever you want to add or remove icons.
 - Icons are embedded as SVGs and can be styled with CSS classes.
