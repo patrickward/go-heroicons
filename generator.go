@@ -13,6 +13,16 @@ var MissingIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24
   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 </svg>`
 
+// IconType represents the different types of Heroicons
+type IconType string
+
+const (
+	IconOutline IconType = "outline" // 24px outline icons
+	IconSolid   IconType = "solid"   // 24px solid icons
+	IconMini    IconType = "mini"    // 20px solid icons
+	IconMicro   IconType = "micro"   // 16px solid icons
+)
+
 // IconSet defines an icon to be included in the project
 type IconSet struct {
 	Name string
@@ -123,6 +133,7 @@ import (
 	"fmt"
 	"embed"
 	"html/template"
+	"strings"
 
 	"github.com/patrickward/go-heroicons"
 )
@@ -130,8 +141,15 @@ import (
 //go:embed icons/*.svg
 var iconFS embed.FS
 
-// IconProvider implements the heroicons.IconProvider interface
-type IconProvider struct{}
+// IconType represents the different types of Heroicons
+type IconType string
+
+const (
+	IconOutline IconType = "outline" // 24px outline icons
+	IconSolid   IconType = "solid"   // 24px solid icons
+	IconMini    IconType = "mini"    // 20px solid icons
+	IconMicro   IconType = "micro"   // 16px solid icons
+)
 
 var iconPaths = map[string]string{
 {{- range $key, $path := .IconPaths }}
@@ -139,27 +157,26 @@ var iconPaths = map[string]string{
 {{- end }}
 }
 
-// NewHeroicons creates a new heroicons instance with the local provider
-func Initialize() {
-    provider, err := NewProvider()
+// RenderIcon returns the SVG content for the specified icon with added classes
+func RenderIcon(name string, iconType heroicons.IconType, class string) (template.HTML, error) {
+	svg, err := getIcon(name, iconType)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	heroicons.Initialize(provider)
+
+	// If class is provided, insert it into the SVG
+	if class != "" {
+		if strings.Contains(svg, "class=\"") {
+			svg = strings.Replace(svg, "class=\"", fmt.Sprintf("class=\"%s ", class), 1)
+		} else {
+			svg = strings.Replace(svg, "<svg ", fmt.Sprintf("<svg class=\"%s\" ", class), 1)
+		}
+	}
+
+	return template.HTML(svg), nil
 }
 
-// NewProvider creates a new IconProvider
-func NewProvider() (*IconProvider, error) {
-	return &IconProvider{}, nil
-}
-
-// IconFunc can be used to render an icon in a template
-func IconFunc(name string, iconType heroicons.IconType, class string) (template.HTML, error) {
-	return heroicons.RenderIcon(name, iconType, class)
-}
-
-// GetIcon implements heroicons.IconProvider
-func (p *IconProvider) GetIcon(name string, iconType heroicons.IconType) (string, error) {
+func getIcon(name string, iconType heroicons.IconType) (string, error) {
 	key := fmt.Sprintf("%s/%s", iconType, name)
 	filename, ok := iconPaths[key]
 	if !ok {
